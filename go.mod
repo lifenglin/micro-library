@@ -33,6 +33,7 @@ require (
 	github.com/tebeka/strftime v0.1.4 // indirect
 	github.com/uber/jaeger-client-go v2.23.1+incompatible
 	github.com/uber/jaeger-lib v2.2.0+incompatible // indirect
+	go.mongodb.org/mongo-driver v1.4.1
 	google.golang.org/grpc v1.26.0
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/go-playground/pool.v3 v3.1.1
