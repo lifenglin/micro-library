@@ -21,11 +21,11 @@ type MongoConfig struct {
 
 var mongoDB sync.Map
 
-func MongoDB(ctx context.Context, hlp *helper.Helper, srvName string, name string) (*mongo.Database, error) {
+func MongoDB(ctx context.Context, hlp *helper.Helper, srvName string, name, database string) (*mongo.Database, error) {
 	logger := hlp.Log
 	c, ok := mongoDB.Load(name)
 	if ok {
-		return c.(*mongo.Client).Database("local"), nil
+		return c.(*mongo.Client).Database(database), nil
 	}
 
 	client, err := newClient(ctx, srvName, name, logger)
@@ -34,7 +34,7 @@ func MongoDB(ctx context.Context, hlp *helper.Helper, srvName string, name strin
 	}
 
 	mongoDB.Store(name, client)
-	return client.Database("local"), nil
+	return client.Database(database), nil
 }
 
 func getOption(srvName, name string, logger *logrus.Entry) (config MongoConfig, watcher config.Watcher, err error) {
