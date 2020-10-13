@@ -2,7 +2,7 @@ package library
 
 import (
 	"crypto/md5"
-        "crypto/rand"
+	"crypto/rand"
 	"fmt"
 	"math/rand"
 	"time"
@@ -27,10 +27,10 @@ func Md5(str string) string {
 
 func UuidGenerator() (uuid string) {
 	uuid = ""
-        b := make([]byte, 16)
-        _, err := rand.Read(b)
-        if err == nil {
+	b := make([]byte, 16)
+	_, err := rand.Read(b)
+	if err == nil {
 		uuid = fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
-        }
-        return uuid
+	}
+	return uuid
 }
