@@ -16,10 +16,10 @@ func InitJaeger(srvName string) {
 
 	tracer, _ := jaeger.NewTracer(
 		srvName,
-		jaeger.NewRateLimitingSampler(2),
+		jaeger.NewRateLimitingSampler(1),
 		jaeger.NewRemoteReporter(
 			sender,
-			jaeger.ReporterOptions.BufferFlushInterval(10*time.Second),
+			jaeger.ReporterOptions.BufferFlushInterval(60*time.Second),
 		),
 	)
 
