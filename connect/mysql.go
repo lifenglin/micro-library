@@ -10,6 +10,7 @@ import (
 	mysql2 "gorm.io/driver/mysql"
 	gorm2 "gorm.io/gorm"
 	"gorm.io/plugin/prometheus"
+	"path/filepath"
 	"sync"
 	"time"
 )
@@ -49,7 +50,7 @@ func ConnectDB(ctx context.Context, hlp *helper.Helper, srvName string, name str
 		if ok {
 			db = existDb
 		} else {
-			conf, watcher, err := ConnectConfig(srvName, "database")
+			conf, watcher, err := newConfig(filepath.Join(srvName, "database"))
 			if err != nil {
 				mysqlLog.WithFields(logrus.Fields{
 					"error": err.Error(),

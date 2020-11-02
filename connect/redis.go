@@ -6,6 +6,7 @@ import (
 	"github.com/go-redis/redis"
 	"github.com/lifenglin/micro-library/helper"
 	"github.com/sirupsen/logrus"
+	"path/filepath"
 	"sync"
 	"time"
 )
@@ -79,7 +80,7 @@ func ConnectRedis(ctx context.Context, hlp *helper.Helper, srvName string, name 
 		if ok {
 			rd = existRd
 		} else {
-			conf, watcher, err := ConnectConfig(srvName, "redis")
+			conf, watcher, err := newConfig(filepath.Join(srvName, "redis"))
 			if err != nil {
 				hlp.RedisLog.WithFields(logrus.Fields{
 					"error": err.Error(),
@@ -191,7 +192,7 @@ func ConnectIdGenerator(ctx context.Context, hlp *helper.Helper) (*redis.Client,
 		if ok {
 			rd = existRd
 		} else {
-			conf, watcher, err := ConnectConfig(srvName, "redis")
+			conf, watcher, err := newConfig(filepath.Join(srvName, "redis"))
 			if err != nil {
 				hlp.RedisLog.WithFields(logrus.Fields{
 					"error": err.Error(),
