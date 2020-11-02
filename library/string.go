@@ -2,7 +2,6 @@ package library
 
 import (
 	"crypto/md5"
-	"crypto/rand"
 	"fmt"
 	"math/rand"
 	"time"
