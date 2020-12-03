@@ -1,35 +1,32 @@
 package helper
 
 import (
+	"sync"
 	"time"
 )
 
 type Timer struct {
-	duration map[string]*duration
+	duration sync.Map
 }
 
 func (t *Timer) Start(name string) {
-	if t.duration == nil {
-		t.duration = make(map[string]*duration)
-	}
-	t.duration[name] = new(duration)
-	t.duration[name].Start()
+	start := new(duration)
+	start.Start()
+	t.duration.Store(name, start)
 }
 
 func (t *Timer) End(name string) {
-	if t.duration == nil {
-		t.duration = make(map[string]*duration)
-	}
-	if _, ok := t.duration[name]; ok {
-		t.duration[name].End()
+	if d, ok := t.duration.Load(name); ok {
+		d.(*duration).End()
 	}
 }
 
 func (t *Timer) Duration(name string) time.Duration {
-	if t.duration == nil {
-		t.duration = make(map[string]*duration)
+	if d, ok := t.duration.Load(name); ok {
+		return d.(*duration).Duration()
+	} else {
+		return 0
 	}
-	return t.duration[name].Duration()
 }
 
 func (t *Timer) Calculation() map[string]string {
@@ -37,15 +34,18 @@ func (t *Timer) Calculation() map[string]string {
 	var strTimer = make(map[string]string)
 	var recordProfiler time.Duration
 	allTimer := t.Duration("allTimer")
-	for key, val := range t.duration {
-		dura := val.Duration()
+
+	t.duration.Range(func(key, value interface{}) bool {
+		dura := value.(*duration).Duration()
 		//精确到毫秒值
-		strTimer[key] = dura.Round(time.Millisecond).String()
+		strTimer[key.(string)] = dura.Round(time.Millisecond).String()
 		if key != "allTimer" {
 			//Timer标记过的总时间
 			recordProfiler += dura
 		}
-	}
+		return true
+	})
+
 	//其余没有记录的百分比耗时
 	strTimer["other"] = (allTimer - recordProfiler).Round(time.Millisecond).String()
 	return strTimer
