@@ -42,7 +42,6 @@ func LiteralLang(key string, language string, argv map[string]string) (string, e
 		language = "cn"
 	}
 
-
 	if languageData, ok := ParamsList[language]; ok {
 		data, err := parse(languageData, key)
 		if nil == err {
@@ -54,7 +53,6 @@ func LiteralLang(key string, language string, argv map[string]string) (string, e
 			return "", err
 		}
 	}
-
 
 	if languageData, ok := ParamsList["en"]; ok {
 		data, err := parse(languageData, key)
