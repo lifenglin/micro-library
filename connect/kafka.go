@@ -1,87 +1,89 @@
 package connect
 
 import (
-	"fmt"
-	kafka "github.com/segmentio/kafka-go"
-	"github.com/sirupsen/logrus"
+	"github.com/micro/go-micro/v2/config"
+	"github.com/segmentio/kafka-go"
+	"strings"
 	"sync"
 	"time"
 )
 
 var (
-	writers sync.Map
-	locker  sync.Locker
+	brokerMap sync.Map
+	locker    sync.Mutex
 )
 
-type kafkaOption struct {
-	Broker []string
+//async设置为true，表示不阻塞， 不需要等待返回值确认
+func GetKafkaWriter(svrName, name, topic string, async bool) (*kafka.Writer, error) {
+	brokers, err := getBrokers(svrName, name, topic)
+	if err != nil {
+		return nil, err
+	}
+
+	return kafka.NewWriter(kafka.WriterConfig{
+		Brokers:  brokers,
+		Topic:    topic,
+		Balancer: &kafka.LeastBytes{},
+		Async:    async,
+	}), nil
 }
 
-type connection struct {
-	w      *kafka.Writer
-	broker []string
-	once   sync.Once
+func GetKafkaReader(svrName, name, topic, groupID string) (*kafka.Reader, error) {
+	brokers, err := getBrokers(svrName, name, topic)
+	if err != nil {
+		return nil, err
+	}
+
+	return kafka.NewReader(kafka.ReaderConfig{
+		Brokers:  brokers,
+		GroupID:  groupID,
+		Topic:    topic,
+		MinBytes: 10e3, // 10KB
+		MaxBytes: 10e6, // 10MB
+	}), nil
 }
 
-func GetKafkaWriter(topic string, log *logrus.Entry) (w *kafka.Writer, err error) {
-	c, ok := writers.Load(topic)
+func getBrokers(svrName, name, topic string) ([]string, error) {
+	key := name + "." + topic
+	brokerValue, ok := brokerMap.Load(key)
 	if !ok {
 		locker.Lock()
-		c, ok := writers.Load(topic)
+		defer locker.Unlock()
+		brokerValue, ok := brokerMap.Load(key)
 		if ok {
-			locker.Unlock()
-			return c.(connection).w, nil
+			return brokerValue.([]string), nil
 		}
-		conf, watcher, err := ConnectConfig("kafka", "broker")
+
+		conf, watcher, err := ConnectConfig(svrName, "kafka")
 		if err != nil {
-			log.WithFields(logrus.Fields{
-				"error": err.Error(),
-			}).Error("kafka connect config")
-			locker.Unlock()
-			return nil, fmt.Errorf("kafka connect config: %w", err)
+			return nil, err
 		}
 
-		var option = new(kafkaOption)
-		err = conf.Get("kafka", "broker").Scan(option)
+		var brokerAddress string
+		err = conf.Get(svrName, "kafka", name, topic).Scan(&brokerAddress)
 		if err != nil {
-			log.WithFields(logrus.Fields{
-				"error": err,
-			}).Error("config scan kafka")
-			locker.Unlock()
-			return nil, fmt.Errorf("config scan kafka: %w", err)
+			return nil, err
 		}
 
-		w = kafka.NewWriter(kafka.WriterConfig{
-			Brokers: option.Broker,
-			Topic:   topic,
-		})
+		go deleteBrokerOnUpdate(watcher, key)
 
-		newConnection := connection{
-			w:      w,
-			broker: option.Broker,
-			once:   sync.Once{},
-		}
-
-		newConnection.once.Do(func() {
-			go func() {
-				for {
-					_, err := watcher.Next()
-					if err != nil {
-						time.Sleep(time.Second)
-						continue
-					}
-
-					writers.Delete(topic)
-					time.Sleep(10 * time.Second)
-					newConnection.w.Close()
-					return
-				}
-			}()
-		})
-
-		writers.Store(topic, newConnection)
-		locker.Unlock()
-		return w, nil
+		brokers := strings.Split(brokerAddress, ",")
+		brokerMap.Store(key, brokers)
+		return brokers, nil
 	}
-	return c.(connection).w, nil
+
+	return brokerValue.([]string), nil
+}
+
+func deleteBrokerOnUpdate(watcher config.Watcher, key string) {
+	for {
+		_, err := watcher.Next()
+		if err != nil {
+			time.Sleep(time.Second)
+			continue
+		}
+
+		brokerMap.Delete(key)
+		break
+	}
 }
