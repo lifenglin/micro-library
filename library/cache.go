@@ -50,6 +50,7 @@ func GetCache(ctx context.Context, hlp *helper.Helper, srvName string, name stri
 			log.WithFields(logrus.Fields{
 				"error":    err,
 				"redisKey": redisKey,
+				"bytes":    string(bytes),
 			}).Warn("getDataFromRedis error")
 		}
 		return err
@@ -62,6 +63,7 @@ func GetCache(ctx context.Context, hlp *helper.Helper, srvName string, name stri
 			log.WithFields(logrus.Fields{
 				"error":    err,
 				"redisKey": redisKey,
+				"bytes":    string(bytes),
 			}).Warn("json unmarshal error")
 			return err
 		}
