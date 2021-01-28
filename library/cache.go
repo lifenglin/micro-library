@@ -39,21 +39,24 @@ func GetCache(ctx context.Context, hlp *helper.Helper, srvName string, name stri
 		return err
 	}
 	bytes, err = redis.Get(redisKey).Bytes()
-	if err != nil && err.Error() != "redis: nil" {
-		log.WithFields(logrus.Fields{
-			"error":    err,
-			"redisKey": redisKey,
-		}).Warn("getDataFromRedis error")
-	} else if err != nil {
-		//缓存未命中，从数据库中获取数据
-		log.WithFields(logrus.Fields{
-			"redisKey": redisKey,
-			"bytes":    string(bytes),
-		}).Trace("miss cache")
+	if err != nil {
+		if err.Error() == "redis: nil" {
+			//缓存未命中，从数据库中获取数据
+			log.WithFields(logrus.Fields{
+				"redisKey": redisKey,
+				"bytes":    string(bytes),
+			}).Trace("miss cache")
+		} else {
+			log.WithFields(logrus.Fields{
+				"error":    err,
+				"redisKey": redisKey,
+			}).Warn("getDataFromRedis error")
+		}
 		return err
 	}
+
 	//如果命中缓存，则从缓存中拿出数据返回
-	if bytes != nil {
+	if len(bytes) > 0 {
 		err := json.Unmarshal(bytes, value)
 		if err != nil {
 			log.WithFields(logrus.Fields{
