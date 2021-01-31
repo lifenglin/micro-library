@@ -10,6 +10,7 @@ require (
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
 	github.com/frankban/quicktest v1.4.1 // indirect
 	github.com/go-redis/redis v6.15.8+incompatible
+	github.com/go-redis/redis_rate v6.5.0+incompatible
 	github.com/golang/protobuf v1.4.2
 	github.com/hashicorp/go-rootcerts v1.0.1 // indirect
 	github.com/hashicorp/go-sockaddr v1.0.2 // indirect
