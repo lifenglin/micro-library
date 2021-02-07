@@ -289,3 +289,51 @@ func SetCacheNum(ctx context.Context, hlp *helper.Helper, srvName string, name s
 
 	return nil
 }
+
+// incr不主动更新本地缓存，如果更新本地缓存，可能出现数字时而大时而小的情况
+func IncrCacheNum(ctx context.Context, hlp *helper.Helper, srvName string, name string, redisKey string) (err error) {
+	log := hlp.RedisLog
+	redis, err := connect.ConnectRedis(ctx, hlp, srvName, name)
+	if err != nil {
+		return err
+	}
+
+	err = redis.Incr(redisKey).Err()
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"redisKey": redisKey,
+			"error":    err,
+		}).Warn("incrRedis error")
+		return err
+	} else {
+		log.WithFields(logrus.Fields{
+			"redisKey": redisKey,
+		}).Trace("incr redis")
+	}
+
+	return nil
+}
+
+// decr不主动更新本地缓存，如果更新本地缓存，可能出现数字时而大时而小的情况
+func DecrCacheNum(ctx context.Context, hlp *helper.Helper, srvName string, name string, redisKey string) (err error) {
+	log := hlp.RedisLog
+	redis, err := connect.ConnectRedis(ctx, hlp, srvName, name)
+	if err != nil {
+		return err
+	}
+
+	err = redis.Decr(redisKey).Err()
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"redisKey": redisKey,
+			"error":    err,
+		}).Warn("incrRedis error")
+		return err
+	} else {
+		log.WithFields(logrus.Fields{
+			"redisKey": redisKey,
+		}).Trace("incr redis")
+	}
+
+	return nil
+}
