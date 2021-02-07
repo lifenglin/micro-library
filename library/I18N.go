@@ -8,34 +8,22 @@ import (
 	"strings"
 )
 
-var HaveGetParamList = false
-var ParamsList map[string]interface{}
 
-func init() {
-	err := getParamList()
-	if nil == err {
-		HaveGetParamList = true
-	}
-}
-
-func getParamList() error {
-	hlp := new(helper.Helper)
-	ParamsListMap, err := GetVocabularyParamsByKey(context.Background(), hlp, "vocabulary_ii8n")
+func getParamList(ctx context.Context, hlp *helper.Helper) (map[string]interface{}, error) {
+	var ParamsList map[string]interface{}
+	ParamsListMap, err := GetVocabularyParamsByKey(ctx, hlp, "vocabulary_ii8n")
 	for _, one := range ParamsListMap {
 		ParamsList = one
 		break
 	}
-	return err
+	return ParamsList, err
 }
 
-func LiteralLang(key string, language string, argv map[string]string) (string, error) {
-	if !HaveGetParamList {
-		err := getParamList()
-		if nil != err {
-			return "", err
-		}
+func LiteralLang(ctx context.Context, hlp *helper.Helper, key string, language string, argv map[string]string) (string, error) {
+	ParamsList, err := getParamList(ctx, hlp)
 
-		HaveGetParamList = true
+	if nil != err {
+		return "", err
 	}
 
 	if "" == language {
