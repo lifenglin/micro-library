@@ -10,7 +10,7 @@ require (
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
 	github.com/frankban/quicktest v1.4.1 // indirect
 	github.com/go-redis/redis v6.15.8+incompatible
-	github.com/golang/protobuf v1.4.2
+	github.com/golang/protobuf v1.4.3
 	github.com/hashicorp/go-rootcerts v1.0.1 // indirect
 	github.com/hashicorp/go-sockaddr v1.0.2 // indirect
 	github.com/hashicorp/memberlist v0.1.5 // indirect
@@ -24,7 +24,7 @@ require (
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pascaldekloe/goe v0.1.0 // indirect
 	github.com/pierrec/lz4 v2.2.6+incompatible // indirect
-	github.com/prometheus/client_golang v1.7.0
+	github.com/prometheus/client_golang v1.9.0
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5
 	github.com/segmentio/kafka-go v0.3.6
 	github.com/shopspring/decimal v1.2.0
@@ -38,6 +38,6 @@ require (
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/go-playground/pool.v3 v3.1.1
 	gorm.io/driver/mysql v0.2.9
-	gorm.io/gorm v0.2.19
-	gorm.io/plugin/prometheus v0.0.0-20200624125218-0004dad9faf5
+	gorm.io/gorm v1.20.12
+	gorm.io/plugin/prometheus v0.0.0-20210201030325-2d0d2f250610
 )

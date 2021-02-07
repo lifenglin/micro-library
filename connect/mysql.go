@@ -87,7 +87,12 @@ func ConnectDB(ctx context.Context, hlp *helper.Helper, srvName string, name str
 			db2, err := gorm2.Open(mysql2.Open(clusterConfig.Dsn), &gorm2.Config{})
 			if err == nil {
 				db2.ConnPool = db.DB()
-				db2.Use(prometheus.New(prometheus.Config{DBName: srvName}))
+				db2.Use(prometheus.New(prometheus.Config{
+					DBName: srvName,
+					MetricsCollector: []prometheus.MetricsCollector{
+						&prometheus.MySQL{VariableNames: []string{"Threads_running"}},
+					},
+				}))
 			}
 
 			go func() {

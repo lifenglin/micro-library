@@ -4,11 +4,17 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/uber/jaeger-client-go"
 	"log"
+	"os"
 	"time"
 )
 
 func InitJaeger(srvName string) {
-	sender, err := jaeger.NewUDPTransport("jaeger-agent.default:5775", 0)
+	jaegerAddress := os.Getenv("JAEGER_ADDRESS")
+	if jaegerAddress == "" {
+		return
+	}
+
+	sender, err := jaeger.NewUDPTransport(jaegerAddress, 0)
 	if err != nil {
 		log.Println("connect jaeger err: ", err)
 		return
