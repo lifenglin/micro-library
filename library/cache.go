@@ -294,3 +294,21 @@ func SetCacheNum(ctx context.Context, hlp *helper.Helper, srvName string, name s
 
 	return nil
 }
+
+func CacheExists(ctx context.Context, hlp *helper.Helper, srvName string, name string, redisKey string) (bool, error) {
+	log := hlp.RedisLog
+	redis, err := connect.ConnectRedis(ctx, hlp, srvName, name)
+	if err != nil {
+		return false, err
+	}
+
+	exists, err := redis.Exists(redisKey).Result()
+	if nil != err {
+		log.WithFields(logrus.Fields{
+			"error":    err,
+			"redisKey": redisKey,
+		}).Warn("exec Exists error")
+		return false, err
+	}
+	return exists > 0, nil
+}
