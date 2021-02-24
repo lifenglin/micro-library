@@ -32,6 +32,7 @@ func newDiffText(ctx context.Context, hlp *helper.Helper, language string) (diff
 	if nil != err {
 		return nil, err
 	}
+	// 转换成golang的时间Format
 	diffText.Default = strings.Replace(diffText.Default, "Y", "2006", 1)
 	diffText.Default = strings.Replace(diffText.Default, "n", "1", 1)
 	diffText.Default = strings.Replace(diffText.Default, "M", "Jan", 1)
