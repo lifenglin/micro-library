@@ -10,41 +10,61 @@ import (
 
 var (
 	brokerMap sync.Map
+	readerMap sync.Map
+	writerMap sync.Map
 	locker    sync.Mutex
 )
 
 //async设置为true，表示不阻塞， 不需要等待返回值确认
 func GetKafkaWriter(svrName, name, topic string, async bool) (*kafka.Writer, error) {
+	key := keyName(name, topic)
+	if writer, ok := writerMap.Load(key); ok {
+		return writer.(*kafka.Writer), nil
+	}
+
 	brokers, err := getBrokers(svrName, name, topic)
 	if err != nil {
 		return nil, err
 	}
 
-	return kafka.NewWriter(kafka.WriterConfig{
+	writer := kafka.NewWriter(kafka.WriterConfig{
 		Brokers:  brokers,
 		Topic:    topic,
 		Balancer: &kafka.LeastBytes{},
 		Async:    async,
-	}), nil
+	})
+
+	writerMap.Store(key, writer)
+
+	return writer, nil
 }
 
 func GetKafkaReader(svrName, name, topic, groupID string) (*kafka.Reader, error) {
+	key := keyName(name, topic)
+	if reader, ok := readerMap.Load(key); ok {
+		return reader.(*kafka.Reader), nil
+	}
+
 	brokers, err := getBrokers(svrName, name, topic)
 	if err != nil {
 		return nil, err
 	}
 
-	return kafka.NewReader(kafka.ReaderConfig{
+	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:  brokers,
 		GroupID:  groupID,
 		Topic:    topic,
 		MinBytes: 10e3, // 10KB
 		MaxBytes: 10e6, // 10MB
-	}), nil
+	})
+
+	readerMap.Store(key, reader)
+
+	return reader, nil
 }
 
 func getBrokers(svrName, name, topic string) ([]string, error) {
-	key := name + "." + topic
+	key := keyName(name, topic)
 	brokerValue, ok := brokerMap.Load(key)
 	if !ok {
 		locker.Lock()
@@ -75,6 +95,10 @@ func getBrokers(svrName, name, topic string) ([]string, error) {
 	return brokerValue.([]string), nil
 }
 
+func keyName(name, topic string) string {
+	return name + "." + topic
+}
+
 func deleteBrokerOnUpdate(watcher config.Watcher, key string) {
 	for {
 		_, err := watcher.Next()
@@ -84,6 +108,8 @@ func deleteBrokerOnUpdate(watcher config.Watcher, key string) {
 		}
 
 		brokerMap.Delete(key)
+		writerMap.Delete(key)
+		readerMap.Delete(key)
 		break
 	}
 }
