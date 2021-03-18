@@ -269,8 +269,8 @@ func ConnectIdGenerator(ctx context.Context, hlp *helper.Helper) (*redis.Client,
 
 func ConnectSingleRedis(ctx context.Context, hlp *helper.Helper, srvName string, name string) (*redis.Client, error) {
 	timer := hlp.Timer
-	timer.Start("ConnectIdGenerator")
-	defer timer.End("ConnectIdGenerator")
+	timer.Start("ConnectSingleRedis")
+	defer timer.End("ConnectSingleRedis")
 
 	rds.RLock()
 	rd, ok := rds.MapRedis[name]
