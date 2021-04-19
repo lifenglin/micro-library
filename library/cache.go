@@ -206,13 +206,13 @@ func mgetRedisCache(ctx context.Context, hlp *helper.Helper, srvName string, nam
 			if err.Error() == "redis: nil" {
 				//缓存未命中，从数据库中获取数据
 				log.WithFields(logrus.Fields{
-					"cmd": cmd.String(),
+					"redisKey": redisKey[originIndex],
 					"bytes":    string(bytes),
 				}).Trace("miss cache")
 			} else {
 				log.WithFields(logrus.Fields{
 					"err":    	err,
-					"cmd": 		cmd.String(),
+					"redisKey": redisKey[originIndex],
 					"bytes":    string(bytes),
 				}).Warn("getDataFromRedis error")
 			}
@@ -225,7 +225,7 @@ func mgetRedisCache(ctx context.Context, hlp *helper.Helper, srvName string, nam
 		if nil != err {
 			log.WithFields(logrus.Fields{
 				"error":    err,
-				"cmd": 		cmd.String(),
+				"redisKey": redisKey[originIndex],
 				"bytes":    string(bytes),
 			}).Warn("json unmarshal error")
 			noCacheIndex = append(noCacheIndex, originIndex)
