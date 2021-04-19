@@ -105,10 +105,17 @@ func GetLocalCache(ctx context.Context, hlp *helper.Helper, srvName string, name
 
 	bytes, err := bigCache.Get(filepath.Join(srvName, name, redisKey))
 	if nil != err {
-		log.WithFields(logrus.Fields{
-			"redisKey": redisKey,
-			"err": 		err,
-		}).Warn("bigCache Get fail")
+		if "Entry not found" == err.Error() {
+			log.WithFields(logrus.Fields{
+				"redisKey": redisKey,
+				"bytes":    string(bytes),
+			}).Trace("miss local cache")
+		} else {
+			log.WithFields(logrus.Fields{
+				"redisKey": redisKey,
+				"err": 		err,
+			}).Warn("bigCache Get fail")
+		}
 		return err
 	}
 
