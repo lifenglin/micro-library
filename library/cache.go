@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	goRedis "github.com/go-redis/redis"
 	"github.com/lifenglin/micro-library/connect"
 	"github.com/lifenglin/micro-library/helper"
 	"github.com/sirupsen/logrus"
@@ -91,6 +92,44 @@ func GetCache(ctx context.Context, hlp *helper.Helper, srvName string, name stri
 	return errors.New("redis: nil")
 }
 
+func GetLocalCache(ctx context.Context, hlp *helper.Helper, srvName string, name string, redisKey string, value interface{}) (err error) {
+	log := hlp.RedisLog
+
+	bigCache, err := connect.ConnectBigcache()
+	if nil != err {
+		log.WithFields(logrus.Fields{
+			"err": 		err,
+		}).Warn("ConnectBigcache fail")
+		return err
+	}
+
+	bytes, err := bigCache.Get(filepath.Join(srvName, name, redisKey))
+	if nil != err {
+		log.WithFields(logrus.Fields{
+			"redisKey": redisKey,
+			"err": 		err,
+		}).Warn("bigCache Get fail")
+		return err
+	}
+
+	err = json.Unmarshal(bytes, value)
+	if nil != err {
+		log.WithFields(logrus.Fields{
+			"redisKey": redisKey,
+			"bytes":    string(bytes),
+			"error":    err,
+		}).Warn("json unmarshal error")
+		return err
+	}
+
+	log.WithFields(logrus.Fields{
+		"redisKey": redisKey,
+		"value":    value,
+		"bytes":    string(bytes),
+	}).Trace("all hit local cache")
+	return nil
+}
+
 func MgetCache(ctx context.Context, hlp *helper.Helper, srvName string, name string, localCache bool, redisKey []string, value interface{}) (noCacheIndex []int, err error) {
 	slice := reflect.ValueOf(value)
 	if slice.Kind() != reflect.Slice {
@@ -99,16 +138,121 @@ func MgetCache(ctx context.Context, hlp *helper.Helper, srvName string, name str
 		}
 		return noCacheIndex, errors.New("value need slice")
 	}
+
 	noCacheIndex = make([]int, 0)
 	if len(redisKey) != slice.Len() {
 		return noCacheIndex, errors.New("len is not eq")
 	}
-	for key, item := range redisKey {
-		err := GetCache(ctx, hlp, srvName, name, localCache, item, slice.Index(key).Interface())
-		if err != nil {
-			noCacheIndex = append(noCacheIndex, key)
+
+	// 如果使用localCache则先从localCahe里面取一次。
+	if localCache {
+		for key, item := range redisKey {
+			err := GetLocalCache(ctx, hlp, srvName, name, item, slice.Index(key).Interface())
+			if err != nil {
+				noCacheIndex = append(noCacheIndex, key)
+			}
+		}
+		if 0 != len(noCacheIndex) {
+			noCacheIndex, err = mgetRedisCache(ctx, hlp, srvName, name, redisKey, noCacheIndex, &slice, localCache)
+		}
+	} else {
+		noCacheIndex, err = mgetRedisCache(ctx, hlp, srvName, name, redisKey, nil, &slice, localCache)
+	}
+
+	return noCacheIndex, nil
+}
+
+func mgetRedisCache(ctx context.Context, hlp *helper.Helper, srvName string, name string, redisKey []string, getIndex []int, slice *reflect.Value, localCache bool) (noCacheIndex []int, err error) {
+	log := hlp.RedisLog
+	noCacheIndex = make([]int, 0)
+
+	redis, err := connect.ConnectRedis(ctx, hlp, srvName, name)
+	if err != nil {
+		return getIndex, err
+	}
+
+	pipeline := redis.Pipeline()
+	// 往pipeline中加入get
+	if 0 == len(getIndex) {
+		for _, item := range redisKey {
+			pipeline.Get(item)
+		}
+	} else {
+		for _, originIndex := range getIndex {
+			pipeline.Get(redisKey[originIndex])
 		}
 	}
+
+	// 从pipeline中取出结果
+	cmders, err := pipeline.Exec()
+	if nil != err {
+		if err.Error() != "redis: nil" {
+			return nil, err
+		}
+	}
+
+	//  取返回值
+	for index, cmder := range cmders {
+		cmd := cmder.(*goRedis.StringCmd)
+
+		originIndex := index
+		if 0 != len(getIndex) {
+			originIndex = getIndex[index]
+		}
+
+		// 取出数据
+		bytes, err := cmd.Bytes()
+		if nil != err {
+			if err.Error() == "redis: nil" {
+				//缓存未命中，从数据库中获取数据
+				log.WithFields(logrus.Fields{
+					"cmd": cmd.String(),
+					"bytes":    string(bytes),
+				}).Trace("miss cache")
+			} else {
+				log.WithFields(logrus.Fields{
+					"err":    	err,
+					"cmd": 		cmd.String(),
+					"bytes":    string(bytes),
+				}).Warn("getDataFromRedis error")
+			}
+
+			noCacheIndex = append(noCacheIndex, originIndex)
+			continue
+		}
+
+		err = json.Unmarshal(bytes, slice.Index(originIndex).Interface())
+		if nil != err {
+			log.WithFields(logrus.Fields{
+				"error":    err,
+				"cmd": 		cmd.String(),
+				"bytes":    string(bytes),
+			}).Warn("json unmarshal error")
+			noCacheIndex = append(noCacheIndex, originIndex)
+			continue
+		}
+
+		log.WithFields(logrus.Fields{
+			"redisKey": redisKey[originIndex],
+			"value":    slice.Index(originIndex).Interface(),
+			"bytes":    string(bytes),
+		}).Trace("all hit cache")
+
+		if localCache {
+			bigCache, err := connect.ConnectBigcache()
+			if err == nil {
+				err = bigCache.Set(filepath.Join(srvName, name, redisKey[originIndex]), bytes)
+				if err != nil {
+					log.WithFields(logrus.Fields{
+						"redisKey": redisKey[originIndex],
+						"bytes":    bytes,
+						"error":    err,
+					}).Warn("setLocal error")
+				}
+			}
+		}
+	}
+
 	return noCacheIndex, nil
 }
 
@@ -294,3 +438,5 @@ func SetCacheNum(ctx context.Context, hlp *helper.Helper, srvName string, name s
 
 	return nil
 }
+
+
