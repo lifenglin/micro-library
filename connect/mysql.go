@@ -28,10 +28,53 @@ func init() {
 }
 
 type mysqlClusterConfig struct {
-	Conn_max_lifetime int    `json:"conn_max_lifetime"`
-	Dsn               string `json:"dsn"`
-	Max_idle_conns    int    `json:"max_idle_conns"`
-	Max_open_conns    int    `json:"max_open_conns"`
+	ConnMaxLifetime int    `json:"conn_max_lifetime"`
+	Dsn             string `json:"dsn"`
+	MaxIdleConns    int    `json:"max_idle_conns"`
+	MaxOpenConns    int    `json:"max_open_conns"`
+}
+
+func MysqlInit(srvName string) {
+	hlp := new(helper.Helper)
+	hlp.Timer = new(helper.Timer)
+	hlp.MysqlLog = MysqlLog.WithTime(time.Now())
+
+	conf, _, err := newConfig(filepath.Join(srvName, "database"))
+	if err != nil {
+		hlp.MysqlLog.WithFields(logrus.Fields{
+			"err": err,
+		}).Error("get config")
+		return
+	}
+
+	var config map[string]interface{}
+	err = conf.Get(srvName, "database").Scan(&config)
+	if err != nil {
+		hlp.MysqlLog.WithFields(logrus.Fields{
+			"err": err,
+		}).Error("scan config")
+		return
+	}
+
+	for k, _ := range config {
+		_, err = ConnectDB(context.Background(), hlp, srvName, k, "master")
+		if err != nil {
+			hlp.MysqlLog.WithFields(logrus.Fields{
+				"name":    k,
+				"err":     err,
+				"cluster": "master",
+			}).Error("connect mysql error")
+		}
+
+		_, err := ConnectDB(context.Background(), hlp, srvName, k, "slave")
+		if err != nil {
+			hlp.MysqlLog.WithFields(logrus.Fields{
+				"name":    k,
+				"err":     err,
+				"cluster": "slave",
+			}).Error("connect mysql error")
+		}
+	}
 }
 
 func ConnectDB(ctx context.Context, hlp *helper.Helper, srvName string, name string, cluster string) (*gorm.DB, error) {
@@ -77,9 +120,9 @@ func ConnectDB(ctx context.Context, hlp *helper.Helper, srvName string, name str
 				return nil, fmt.Errorf("connect mysql fail: %w", err)
 			}
 			//设置连接池
-			db.DB().SetMaxIdleConns(clusterConfig.Max_idle_conns)
-			db.DB().SetMaxOpenConns(clusterConfig.Max_open_conns)
-			db.DB().SetConnMaxLifetime(time.Duration(clusterConfig.Conn_max_lifetime) * time.Second)
+			db.DB().SetMaxIdleConns(clusterConfig.MaxIdleConns)
+			db.DB().SetMaxOpenConns(clusterConfig.MaxOpenConns)
+			db.DB().SetConnMaxLifetime(time.Duration(clusterConfig.ConnMaxLifetime) * time.Second)
 			db.SingularTable(true)
 			db.BlockGlobalUpdate(false)
 			dbs.Map[dbsKey] = db
