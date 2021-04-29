@@ -2,6 +2,7 @@ package connect
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
@@ -35,6 +36,12 @@ type mysqlClusterConfig struct {
 }
 
 func MysqlInit(srvName string) {
+	var connSlice []*sql.Conn
+	defer func() {
+		for _, c := range connSlice {
+			_ = c.Close()
+		}
+	}()
 	hlp := new(helper.Helper)
 	hlp.Timer = new(helper.Timer)
 	hlp.MysqlLog = MysqlLog.WithTime(time.Now())
@@ -66,7 +73,10 @@ func MysqlInit(srvName string) {
 			}).Error("connect mysql error")
 		} else {
 			for i := 0; i < 10; i++ {
-				_, _ = db.DB().Conn(context.Background())
+				c, err := db.DB().Conn(context.Background())
+				if err != nil {
+					connSlice = append(connSlice, c)
+				}
 			}
 		}
 
@@ -79,7 +89,10 @@ func MysqlInit(srvName string) {
 			}).Error("connect mysql error")
 		} else {
 			for i := 0; i < 10; i++ {
-				_, _ = db.DB().Conn(context.Background())
+				c, err := db.DB().Conn(context.Background())
+				if err != nil {
+					connSlice = append(connSlice, c)
+				}
 			}
 		}
 	}
