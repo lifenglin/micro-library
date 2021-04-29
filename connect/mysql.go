@@ -65,11 +65,9 @@ func MysqlInit(srvName string) {
 				"cluster": "master",
 			}).Error("connect mysql error")
 		} else {
-			go func() {
-				for i := 0; i < 20; i++ {
-					db.DB().Conn(context.Background())
-				}
-			}()
+			for i := 0; i < 10; i++ {
+				_, _ = db.DB().Conn(context.Background())
+			}
 		}
 
 		db, err = ConnectDB(context.Background(), hlp, srvName, k, "slave")
@@ -80,11 +78,9 @@ func MysqlInit(srvName string) {
 				"cluster": "slave",
 			}).Error("connect mysql error")
 		} else {
-			go func() {
-				for i := 0; i < 20; i++ {
-					db.DB().Conn(context.Background())
-				}
-			}()
+			for i := 0; i < 10; i++ {
+				_, _ = db.DB().Conn(context.Background())
+			}
 		}
 	}
 }
