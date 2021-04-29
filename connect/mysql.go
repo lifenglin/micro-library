@@ -74,7 +74,7 @@ func MysqlInit(srvName string) {
 		} else {
 			for i := 0; i < 10; i++ {
 				c, err := db.DB().Conn(context.Background())
-				if err != nil {
+				if err == nil {
 					connSlice = append(connSlice, c)
 				}
 			}
@@ -90,7 +90,7 @@ func MysqlInit(srvName string) {
 		} else {
 			for i := 0; i < 10; i++ {
 				c, err := db.DB().Conn(context.Background())
-				if err != nil {
+				if err == nil {
 					connSlice = append(connSlice, c)
 				}
 			}
