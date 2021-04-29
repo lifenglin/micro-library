@@ -57,22 +57,34 @@ func MysqlInit(srvName string) {
 	}
 
 	for k, _ := range config {
-		_, err = ConnectDB(context.Background(), hlp, srvName, k, "master")
+		db, err := ConnectDB(context.Background(), hlp, srvName, k, "master")
 		if err != nil {
 			hlp.MysqlLog.WithFields(logrus.Fields{
 				"name":    k,
 				"err":     err,
 				"cluster": "master",
 			}).Error("connect mysql error")
+		} else {
+			go func() {
+				for i := 0; i < 20; i++ {
+					db.DB().Conn(context.Background())
+				}
+			}()
 		}
 
-		_, err := ConnectDB(context.Background(), hlp, srvName, k, "slave")
+		db, err = ConnectDB(context.Background(), hlp, srvName, k, "slave")
 		if err != nil {
 			hlp.MysqlLog.WithFields(logrus.Fields{
 				"name":    k,
 				"err":     err,
 				"cluster": "slave",
 			}).Error("connect mysql error")
+		} else {
+			go func() {
+				for i := 0; i < 20; i++ {
+					db.DB().Conn(context.Background())
+				}
+			}()
 		}
 	}
 }
