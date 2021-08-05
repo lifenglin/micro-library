@@ -6,7 +6,6 @@ go 1.14
 
 require (
 	github.com/allegro/bigcache v1.2.1
-	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
 	github.com/frankban/quicktest v1.4.1 // indirect
 	github.com/go-redis/redis v6.15.8+incompatible
@@ -23,6 +22,7 @@ require (
 	github.com/micro/go-plugins/config/source/consul/v2 v2.5.0
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pascaldekloe/goe v0.1.0 // indirect
+	github.com/percona/go-mysql v0.0.0-20210427141028-73d29c6da78c
 	github.com/pierrec/lz4 v2.2.6+incompatible // indirect
 	github.com/prometheus/client_golang v1.9.0
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5
@@ -33,7 +33,8 @@ require (
 	github.com/tebeka/strftime v0.1.4 // indirect
 	github.com/uber/jaeger-client-go v2.23.1+incompatible
 	github.com/uber/jaeger-lib v2.2.0+incompatible // indirect
-	go.mongodb.org/mongo-driver v1.4.1
+	go.mongodb.org/mongo-driver v1.5.1
+	golang.org/x/net v0.0.0-20200625001655-4c5254603344
 	google.golang.org/grpc v1.26.0
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/go-playground/pool.v3 v3.1.1
