@@ -15,6 +15,11 @@ import (
 	"time"
 )
 
+type ZaddItem struct {
+	Score  float64
+	Member interface{}
+}
+
 func GetCache(ctx context.Context, hlp *helper.Helper, srvName string, name string, localCache bool, redisKey string, value interface{}) (err error) {
 	log := hlp.RedisLog
 	var bytes []byte
@@ -446,4 +451,113 @@ func SetCacheNum(ctx context.Context, hlp *helper.Helper, srvName string, name s
 	return nil
 }
 
+// zset
+func NewZset(ctx context.Context, hlp *helper.Helper, srvName string, name string, redisKey string, items []*ZaddItem, expire time.Duration) (err error) {
+	redis, err := connect.ConnectRedis(ctx, hlp, srvName, name)
+	if err != nil {
+		return err
+	}
+	timer := hlp.Timer
+	timer.Start("newZset")
+	defer timer.End("newZset")
+	pipeline := redis.TxPipeline()
 
+	list := make([]goRedis.Z, len(items))
+	for index, item := range items {
+		list[index].Score = item.Score
+		list[index].Member = item.Member
+	}
+	pipeline.Del(redisKey)
+	pipeline.ZAdd(redisKey, list...)
+	pipeline.Expire(redisKey, expire)
+
+	_, err = pipeline.Exec()
+	if nil != err {
+		return err
+	}
+
+	return nil
+}
+
+func Zrange(ctx context.Context, hlp *helper.Helper, srvName string, name string, redisKey string, start, stop int64) (result []string, err error) {
+	redis, err := connect.ConnectRedis(ctx, hlp, srvName, name)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err = redis.ZRange(redisKey, start, stop).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func ZRangeWithScores(ctx context.Context, hlp *helper.Helper, srvName string, name string, redisKey string, start, stop int64) (result []goRedis.Z, err error) {
+	redis, err := connect.ConnectRedis(ctx, hlp, srvName, name)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err = redis.ZRangeWithScores(redisKey, start, stop).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func ZCard(ctx context.Context, hlp *helper.Helper, srvName string, name string, redisKey string) (int64, error) {
+	redis, err := connect.ConnectRedis(ctx, hlp, srvName, name)
+	if err != nil {
+		return 0, err
+	}
+
+	return redis.ZCard(redisKey).Result()
+}
+
+func ZScore(ctx context.Context, hlp *helper.Helper, srvName string, name string, redisKey string, member string) (float64, error) {
+	redis, err := connect.ConnectRedis(ctx, hlp, srvName, name)
+	if err != nil {
+		return 0, err
+	}
+
+	return redis.ZScore(redisKey, member).Result()
+}
+
+// set
+func NewSet(ctx context.Context, hlp *helper.Helper, srvName string, name string, redisKey string, members []interface{}, expire time.Duration) (err error) {
+	redis, err := connect.ConnectRedis(ctx, hlp, srvName, name)
+	if err != nil {
+		return err
+	}
+	timer := hlp.Timer
+	timer.Start("newSet")
+	defer timer.End("newSet")
+	pipeline := redis.TxPipeline()
+
+	pipeline.Del(redisKey)
+	pipeline.SAdd(redisKey, members...)
+	pipeline.Expire(redisKey, expire)
+
+	_, err = pipeline.Exec()
+	if nil != err {
+		return err
+	}
+
+	return nil
+}
+
+func Srandmember(ctx context.Context, hlp *helper.Helper, srvName string, name string, redisKey string, count int64) (result []string, err error) {
+	redis, err := connect.ConnectRedis(ctx, hlp, srvName, name)
+	if err != nil {
+		return nil, err
+	}
+
+	result, err = redis.SRandMemberN(redisKey, count).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
