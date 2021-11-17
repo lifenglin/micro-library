@@ -6,7 +6,7 @@ func Initialization(serviceName string) {
 	_ = ConnectLog(serviceName)
 	_ = ConnectStdLog(serviceName)
 	if isProduction() {
-		InitJaeger(serviceName)
+		//InitJaeger(serviceName)
 		MysqlInit(serviceName)
 	}
 }
