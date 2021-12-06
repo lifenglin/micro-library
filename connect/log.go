@@ -87,7 +87,7 @@ func ConnectLog(srvName string) (err error) {
 	writer, err := rotatelogs.New(
 		path+".%Y%m%d%H",
 		rotatelogs.WithLinkName(path),
-		rotatelogs.WithMaxAge(3*24*time.Hour),
+		rotatelogs.WithMaxAge(24*time.Hour),
 		rotatelogs.WithRotationTime(time.Hour),
 	)
 	if err != nil {
